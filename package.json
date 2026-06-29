@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "ts": "tsc --noEmit --watch",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
@@ -11,6 +12,7 @@
   },
   "dependencies": {
     "next": "16.2.9",
+    "razorpay": "^2.9.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
