@@ -23,7 +23,6 @@ export const Payment = () => {
       const paymentData = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_API_KEY,
         order_id: data.id,
-
         handler: async (response: any) => {
           // verify payment
           const res = await fetch("/api/verifyOrder", {

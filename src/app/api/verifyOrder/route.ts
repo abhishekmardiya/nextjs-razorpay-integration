@@ -1,25 +1,17 @@
-import crypto from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
-
-const generatedSignature = (
-  razorpayOrderId: string,
-  razorpayPaymentId: string,
-) => {
-  const keySecret = process.env.RAZORPAY_SECRET as string;
-
-  const sig = crypto
-    .createHmac("sha256", keySecret)
-    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-    .digest("hex");
-  return sig;
-};
+import { verifyPaymentSignature } from "@/lib/razorpay";
 
 export async function POST(request: NextRequest) {
   const { orderId, razorpayPaymentId, razorpaySignature } =
     await request.json();
 
-  const signature = generatedSignature(orderId, razorpayPaymentId);
-  if (signature !== razorpaySignature) {
+  const isValid = verifyPaymentSignature({
+    orderId,
+    paymentId: razorpayPaymentId,
+    signature: razorpaySignature,
+  });
+
+  if (!isValid) {
     return NextResponse.json(
       { message: "payment verification failed", isOk: false },
       { status: 400 },

@@ -53,6 +53,27 @@ npm run dev
 
 Use Razorpay [test cards and UPI IDs](https://razorpay.com/docs/payments/payments/test-card-upi-details/) to simulate payments in test mode.
 
+## Integration process
+
+Razorpay requires these steps on both the **server** and the **frontend**:
+
+| Step | Where | What to do | In this project |
+| --- | --- | --- | --- |
+| 1 | Server | Create an order using the [Orders API](https://razorpay.com/docs/api/orders/) | `POST /api/createOrder` — `src/app/api/createOrder/route.ts` |
+| 2 | Frontend | Add Razorpay Checkout and pass the order ID to checkout | `src/component/Payment.tsx` + checkout script in `src/app/page.tsx` |
+| 3 | Server | Verify the payment signature | `POST /api/verifyOrder` — `src/app/api/verifyOrder/route.ts` |
+| 4 | Server | Verify the payment status | Not implemented yet — use the [Payments API](https://razorpay.com/docs/api/payments/) or [webhooks](https://razorpay.com/docs/webhooks/) in production |
+
+### Step-by-step
+
+1. **Create an order (server)** — When the user clicks Pay, the client sends the amount to your server. The server calls Razorpay's Orders API and returns an `order_id`.
+
+2. **Open Razorpay Checkout (frontend)** — Load the Razorpay checkout script, initialize checkout with your Key ID and the `order_id`, then call `payment.open()`.
+
+3. **Verify payment signature (server)** — After checkout succeeds, Razorpay returns `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature`. Send these to your server and verify the signature with your key secret before marking the payment as successful.
+
+4. **Verify payment status (server)** — Confirm the payment is actually captured/settled by fetching the payment or order from Razorpay, or by handling webhook events. Signature verification alone does not replace this check in production.
+
 ## Payment flow
 
 ```mermaid
@@ -65,14 +86,15 @@ sequenceDiagram
 
   User->>Client: Enter amount and click Pay Now
   Client->>CreateOrder: Send amount (in paisa)
-  CreateOrder->>Razorpay: Create order
+  CreateOrder->>Razorpay: Step 1 — Create order
   Razorpay-->>CreateOrder: Order ID
   CreateOrder-->>Client: Order details
-  Client->>Razorpay: Open Checkout
+  Client->>Razorpay: Step 2 — Open Checkout
   User->>Razorpay: Complete payment
   Razorpay-->>Client: Payment ID + signature
-  Client->>VerifyOrder: Verify signature
+  Client->>VerifyOrder: Step 3 — Verify signature
   VerifyOrder-->>Client: Success or failure
+  Note over VerifyOrder,Razorpay: Step 4 — Verify payment status (recommended for production)
 ```
 
 1. The client sends the amount (converted to paisa) to `/api/createOrder`.
@@ -81,6 +103,7 @@ sequenceDiagram
 4. After a successful payment, Razorpay calls the client `handler` with payment details.
 5. The client sends those details to `/api/verifyOrder`, which validates the HMAC signature using your key secret.
 6. On success, you can update your database or redirect the user (currently shown as an alert).
+7. In production, add step 4 — verify payment status via the Razorpay API or webhooks before fulfilling the order.
 
 ## Project structure
 
